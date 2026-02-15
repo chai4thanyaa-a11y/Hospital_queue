@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patient Registration - Hospital Queue</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+    <style>
+        .token-card {
+            background: #e8f4fc;
+            padding: 15px;
+            border-radius: var(--radius);
+            margin-bottom: 15px;
+            border-left: 5px solid var(--primary-color);
+            position: relative;
+        }
+
+        .token-card.serving {
+            background: #d4edda;
+            border-left-color: var(--success-color);
+        }
+
+        .token-number {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .status-badge {
+            float: right;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .status-waiting {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-serving {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .status-completed {
+            background: #d6d8db;
+            color: #383d41;
+        }
+
+        .btn-small {
+            padding: 5px 10px;
+            font-size: 0.8rem;
+            width: auto;
+            margin-top: 5px;
+        }
+
+        .add-btn {
+            background: var(--primary-color);
+            color: white;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <div class="container d-flex" style="justify-content: space-between; align-items: center;">
+            <h1>👨‍🦳 Patient Portal</h1>
+            <a href="index.html" style="color: white; text-decoration: none;">🏠 Home</a>
+        </div>
+    </header>
+
+    <div class="container">
+
+        <!-- Action Area -->
+        <button class="add-btn" onclick="toggleForm()">➕ Register New Patient</button>
+
+        <!-- Registration Form (Hidden by default if patients exist) -->
+        <div id="registration-section" class="card registration-box" style="display: none;">
+            <div class="card-header">New Patient Registration</div>
+            <form id="registration-form">
+                <div class="form-group">
+                    <label>Full Name</label>
+                    <input type="text" id="p-name" required placeholder="Enter name">
+                </div>
+                <div class="form-group">
+                    <label>Age</label>
+                    <input type="number" id="p-age" required placeholder="Age">
+                </div>
+                <div class="form-group">
+                    <label>Department</label>
+                    <select id="p-dept" required>
+                        <option value="Cardiology">Cardiology</option>
+                        <option value="Dermatology">Dermatology</option>
+                        <option value="ENT">ENT</option>
+                        <option value="General">General Medicine</option>
+                        <option value="Gynecology">Gynecology</option>
+                        <option value="Neurology">Neurology</option>
+                        <option value="Oncology">Oncology</option>
+                        <option value="Ophthalmology">Ophthalmology</option>
+                        <option value="Orthopedic">Orthopedic</option>
+                        <option value="Pediatrics">Pediatrics</option>
+                        <option value="Psychiatry">Psychiatry</option>
+                        <option value="Radiology">Radiology</option>
+                        <option value="Urology">Urology</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Urgency Level</label>
+                    <select id="p-urgency">
+                        <option value="Stable">🟢 Stable (Normal)</option>
+                        <option value="Critical">🔴 Critical (Emergency)</option>
+                    </select>
+                </div>
+                <button type="submit">Get Token</button>
+                <button type="button" class="secondary mt-2" onclick="toggleForm()">Cancel</button>
+            </form>
+        </div>
+
+        <!-- Tokens List -->
+        <h3 style="margin-bottom: 15px; color: var(--dark-text);">🎫 Active Tokens</h3>
+        <div id="tokens-list">
+            <!-- Cards go here -->
+        </div>
+
+        <div id="empty-msg" style="text-align: center; color: #777; margin-top: 30px; display: none;">
+            <p>No active token found.</p>
+        </div>
+
+        <!-- History Section -->
+        <div style="margin-top: 40px; border-top: 1px solid #ddd; padding-top: 20px;">
+            <h3 style="margin-bottom: 15px; color: var(--dark-text);">📜 My History</h3>
+            <div id="history-container">
+                <table
+                    style="width: 100%; background: white; border-radius: 8px; overflow: hidden; box-shadow: var(--shadow-sm);">
+                    <thead style="background: #f8f9fa;">
+                        <tr>
+                            <th style="padding: 10px; text-align: left;">Date</th>
+                            <th style="padding: 10px; text-align: left;">Name</th>
+                            <th style="padding: 10px; text-align: left;">Dept</th>
+                            <th style="padding: 10px; text-align: left;">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="my-history-list" style="background: white;">
+                        <!-- History rows -->
+                    </tbody>
+                </table>
+                <p id="no-history-msg" style="text-align: center; color: #888; padding: 15px; display: none;">No history
+                    records found on this device.</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="assets/js/queue.js"></script>
+    <script src="assets/js/navbar.js"></script>
+    <script>
+        // Store array of {id, dept}
+        // We store ID to track which patients belong to this device
+        let myPatients = JSON.parse(localStorage.getItem('my_patients')) || [];
+
+        const regSection = document.getElementById('registration-section');
+        const tokensList = document.getElementById('tokens-list');
+        const emptyMsg = document.getElementById('empty-msg');
+        const form = document.getElementById('registration-form');
+
+        // Auto-Urgency Logic
+        const deptSelect = document.getElementById('p-dept');
+        const urgencySelect = document.getElementById('p-urgency');
+        const criticalDepts = ['Cardiology', 'Neurology', 'Oncology', 'Surgical', 'Emergency'];
+
+        deptSelect.addEventListener('change', () => {
+            if (criticalDepts.includes(deptSelect.value)) {
+                urgencySelect.value = 'Critical';
+            } else {
+                urgencySelect.value = 'Stable';
+            }
+        });
+
+        urgencySelect.addEventListener('change', () => {
+            if (urgencySelect.value === 'Critical') {
+                const confirmed = confirm("⚠️ Warning: Please select 'Critical' ONLY if the patient is in a critical/emergency stage.\n\nAre you sure?");
+                if (!confirmed) {
+                    urgencySelect.value = 'Stable';
+                }
+            }
+        });
+
+        // Init
+        init();
+
+        async function init() {
+            await renderTokens(); // Active
+            await renderMyHistory(); // History
+        }
+
+        function toggleForm() {
+            if (regSection.style.display === 'none') {
+                regSection.style.display = 'block';
+                regSection.scrollIntoView({ behavior: 'smooth' });
+            } else {
+                regSection.style.display = 'none';
+            }
+        }
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('p-name').value;
+            const age = document.getElementById('p-age').value;
+            const dept = document.getElementById('p-dept').value;
+            const urgency = document.getElementById('p-urgency').value;
+
+            // API Call
+            const patient = await queueManager.addPatient(name, age, dept, urgency);
+
+            if (patient) {
+                // Add to local list
+                myPatients.push({ id: patient._id, dept: dept });
+                localStorage.setItem('my_patients', JSON.stringify(myPatients));
+
+                form.reset();
+                urgencySelect.value = 'Stable';
+                toggleForm();
+
+                init(); // Refresh both lists
+                alert(`Token Generated: ${patient.token}`);
+            }
+        });
+
+        async function renderTokens() {
+            if (myPatients.length === 0) {
+                tokensList.innerHTML = '';
+                emptyMsg.style.display = 'block';
+                return;
+            }
+
+            emptyMsg.style.display = 'none';
+            tokensList.innerHTML = '';
+
+            // We need to fetch details for ALL IDs to separate Active vs History
+            // Optimization: Use getMyHistory logic for all, then filter client side?
+            // Yes, let's fetch all patient details in one go using our new endpoint
+            const ids = myPatients.map(p => p.id);
+            const allPatientDetails = await queueManager.getMyHistory(ids); // Re-using this endpoint which fetches by IDs
+
+            // Filter Active (Waiting/Serving)
+            const activePatients = allPatientDetails.filter(p => p.status !== 'completed' && p.status !== 'completed_archived');
+
+            if (activePatients.length === 0) {
+                emptyMsg.style.display = 'block';
+            } else {
+                // Sort by Urgency then JoinedAt
+                activePatients.sort((a, b) => {
+                    const urgencyScore = { 'Critical': 2, 'Stable': 1 };
+                    const scoreA = urgencyScore[a.urgency] || 1;
+                    const scoreB = urgencyScore[b.urgency] || 1;
+
+                    if (scoreA !== scoreB) return scoreB - scoreA; // High score first
+                    return new Date(b.joinedAt) - new Date(a.joinedAt); // Newest first
+                });
+                for (const patient of activePatients) {
+                    // We need to pass original dept from local storage if needed? 
+                    // The patient object has 'department' from DB.
+                    // But createCard expects pData? Let's adjust createCard.
+                    createCard(patient);
+                }
+            }
+        }
+
+        async function renderMyHistory() {
+            const ids = myPatients.map(p => p.id);
+            if (ids.length === 0) {
+                document.getElementById('no-history-msg').style.display = 'block';
+                return;
+            }
+
+            const allPatientDetails = await queueManager.getMyHistory(ids);
+            const historyPatients = allPatientDetails.filter(p => p.status === 'completed' || p.status === 'completed_archived');
+
+            const historyList = document.getElementById('my-history-list');
+            const noHistoryMsg = document.getElementById('no-history-msg');
+
+            historyList.innerHTML = '';
+
+            if (historyPatients.length === 0) {
+                noHistoryMsg.style.display = 'block';
+                return;
+            }
+
+            noHistoryMsg.style.display = 'none';
+
+            // Sort by joinedAt desc
+            historyPatients.sort((a, b) => new Date(b.joinedAt) - new Date(a.joinedAt));
+
+            historyPatients.forEach(p => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td style="padding: 10px; color: #666;">${new Date(p.joinedAt).toLocaleDateString()}</td>
+                    <td style="padding: 10px; font-weight: bold;">${p.name} <span style="font-size:0.8em; color:#888;">(${p.token})</span></td>
+                    <td style="padding: 10px;">${p.department}</td>
+                    <td style="padding: 10px;"><span style="background: #e2e8f0; color: #475569; padding: 2px 6px; border-radius: 4px; font-size: 0.8em;">${p.status.toUpperCase()}</span></td>
+                 `;
+                historyList.appendChild(tr);
+            });
+        }
+
+        async function createCard(patient) {
+            const card = document.createElement('div');
+            card.className = 'token-card';
+
+            let statusText = patient.status.toUpperCase();
+            let statusClass = `status-${patient.status}`;
+            let extraInfo = '';
+
+            if (patient.status === 'waiting') {
+                // Quick fetch for position
+                const queue = await queueManager.getQueue(patient.department);
+                const position = queue.findIndex(p => p._id === patient._id) + 1;
+                const waitTime = position * 14;
+
+                extraInfo = `
+                    <div style="margin-top: 10px; font-size: 0.9rem; color: #555;">
+                        <strong>Position:</strong> ${position} &nbsp;|&nbsp; 
+                        <strong>Est. Wait:</strong> ${waitTime} mins
+                    </div>
+                `;
+            }
+
+            if (patient.status === 'serving') {
+                statusText = "🔊 IT'S YOUR TURN!";
+                card.classList.add('serving');
+            }
+
+            const urgencyBadge = patient.urgency === 'Critical'
+                ? `<div style="color: red; font-weight: bold; font-size: 0.8rem; margin-bottom: 5px;">🔴 CRITICAL PRIORITY</div>`
+                : '';
+
+            card.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: start;">
+                    <div>
+                        ${urgencyBadge}
+                        <div class="token-number">${patient.token}</div>
+                        <div style="font-weight: bold; font-size: 1.1rem;">${patient.name}</div>
+                        <div style="color: #666; font-size: 0.9rem;">${patient.department} | Age: ${patient.age}</div>
+                    </div>
+                    <div class="status-badge ${statusClass}">${statusText}</div>
+                </div>
+                ${extraInfo}
+                <div style="clear: both;"></div>
+            `;
+            tokensList.appendChild(card);
+        }
+
+        window.removeLocal = function (id) {
+            myPatients = myPatients.filter(p => p.id !== id);
+            localStorage.setItem('my_patients', JSON.stringify(myPatients));
+            init(); // Refresh
+        };
+
+        // Poll every 5s
+        setInterval(init, 5000);
+    </script>
+</body>
+
+</html>

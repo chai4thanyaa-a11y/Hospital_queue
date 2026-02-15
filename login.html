@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Staff Login - Hospital Queue</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        }
+
+        .login-card {
+            margin: auto;
+            /* Center vertically and horizontally in flex column */
+            background: white;
+            padding: 40px;
+            border-radius: var(--radius);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .login-card h1 {
+            color: var(--primary-color);
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #666;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        .switch-mode {
+            margin-top: 15px;
+            font-size: 0.9rem;
+            color: #666;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="login-card">
+        <h1 id="form-title">🔐 Staff Login</h1>
+
+        <form id="auth-form">
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" id="username" required>
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="password" required>
+            </div>
+
+            <!-- Registration Fields (Hidden by default) -->
+            <div id="reg-fields" style="display: none;">
+                <div class="form-group">
+                    <label>Role</label>
+                    <select id="role" style="width: 100%; padding: 10px;">
+                        <option value="admin">Admin</option>
+                        <option value="doctor">Doctor</option>
+                    </select>
+                </div>
+                <div class="form-group" id="dept-group" style="display: none;">
+                    <label>Department</label>
+                    <select id="department" style="width: 100%; padding: 10px;">
+                        <option value="General">General Medicine</option>
+                        <option value="Cardiology">Cardiology</option>
+                        <option value="Dermatology">Dermatology</option>
+                        <option value="ENT">ENT</option>
+                        <option value="Gynecology">Gynecology</option>
+                        <option value="Neurology">Neurology</option>
+                        <option value="Oncology">Oncology</option>
+                        <option value="Ophthalmology">Ophthalmology</option>
+                        <option value="Orthopedic">Orthopedic</option>
+                        <option value="Pediatrics">Pediatrics</option>
+                        <option value="Psychiatry">Psychiatry</option>
+                        <option value="Radiology">Radiology</option>
+                        <option value="Urology">Urology</option>
+                    </select>
+                </div>
+            </div>
+
+            <button type="submit" id="submit-btn" style="width: 100%;">Login</button>
+        </form>
+
+        <div class="switch-mode" id="switch-btn">Need an account? Register</div>
+        <div style="margin-top: 20px;">
+            <a href="index.html" style="text-decoration: none; color: #888;">← Back to Home</a>
+        </div>
+    </div>
+
+    <script src="assets/js/navbar.js"></script>
+    <script>
+        const API_URL = 'http://localhost:5000/api/auth';
+        const form = document.getElementById('auth-form');
+        const switchBtn = document.getElementById('switch-btn');
+        const regFields = document.getElementById('reg-fields');
+        const roleSelect = document.getElementById('role');
+        const deptGroup = document.getElementById('dept-group');
+        const title = document.getElementById('form-title');
+        const submitBtn = document.getElementById('submit-btn');
+
+        let isLogin = true;
+
+        switchBtn.addEventListener('click', () => {
+            isLogin = !isLogin;
+            if (isLogin) {
+                regFields.style.display = 'none';
+                title.innerText = '🔐 Staff Login';
+                submitBtn.innerText = 'Login';
+                switchBtn.innerText = 'Need an account? Register';
+            } else {
+                regFields.style.display = 'block';
+                title.innerText = '📝 Staff Register';
+                submitBtn.innerText = 'Register';
+                switchBtn.innerText = 'Have an account? Login';
+            }
+        });
+
+        roleSelect.addEventListener('change', () => {
+            if (roleSelect.value === 'doctor') {
+                deptGroup.style.display = 'block';
+            } else {
+                deptGroup.style.display = 'none';
+            }
+        });
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            const endpoint = isLogin ? '/login' : '/register';
+            const body = { username, password };
+
+            if (!isLogin) {
+                body.role = document.getElementById('role').value;
+                if (body.role === 'doctor') {
+                    body.department = document.getElementById('department').value;
+                }
+            }
+
+            try {
+                const res = await fetch(API_URL + endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+
+                const data = await res.json();
+
+                if (res.ok) {
+                    // Save Token
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('role', data.role);
+                    if (data.department) localStorage.setItem('dept', data.department);
+
+                    alert(isLogin ? 'Login Successful!' : 'Registration Successful!');
+
+                    // Redirect
+                    if (data.role === 'admin') {
+                        window.location.href = 'admin.html';
+                    } else if (data.role === 'doctor') {
+                        window.location.href = 'doctor.html';
+                    }
+                } else {
+                    alert(data.msg || 'Error occurred');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Server validation failed. Make sure the backend is running!');
+            }
+        });
+    </script>
+</body>
+
+</html>

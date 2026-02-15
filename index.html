@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hospital Queue Management System</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+</head>
+
+<body>
+    <div class="container dashboard-container">
+        <!-- Welcome Section -->
+        <header class="dashboard-header"
+            style="text-align: left; background: transparent; box-shadow: none; padding: 0; margin-bottom: 30px;">
+            <h1 style="color: var(--primary-dark); font-size: 2.5rem;">👋 Welcome to City General Hospital</h1>
+            <p style="color: var(--secondary-color); font-size: 1.1rem; font-style: italic;">"Healing Hands, Caring
+                Hearts."</p>
+        </header>
+
+        <!-- Quick Actions -->
+        <h2 style="margin-bottom: 20px; color: var(--dark-text);">🚀 Quick Actions</h2>
+
+        <div class="grid-2" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));">
+            <!-- Patient Portal -->
+            <div class="card action-card" onclick="location.href='patient.html'">
+                <div class="card-icon">👨‍🦳</div>
+                <div class="card-content">
+                    <h2>Patient Portal</h2>
+                    <p>Register yourself or check queue status</p>
+                </div>
+                <button class="btn-icon"><i class="ri-arrow-right-line"></i></button>
+            </div>
+
+            <!-- Doctor Portal -->
+            <div class="card action-card" onclick="location.href='login.html'">
+                <div class="card-icon">👨‍⚕️</div>
+                <div class="card-content">
+                    <h2>Doctor Portal</h2>
+                    <p>Manage consultations and calls</p>
+                </div>
+                <button class="btn-icon"><i class="ri-arrow-right-line"></i></button>
+            </div>
+
+            <!-- Admin Portal -->
+            <div class="card action-card" onclick="location.href='login.html'">
+                <div class="card-icon">👩‍💻</div>
+                <div class="card-content">
+                    <h2>Admin Portal</h2>
+                    <p>System configuration & staff management</p>
+                </div>
+                <button class="btn-icon"><i class="ri-arrow-right-line"></i></button>
+            </div>
+        </div>
+
+        <h2 style="margin-top: 40px; margin-bottom: 20px; color: var(--dark-text);">📊 Dashboard Stats</h2>
+
+        <!-- Stats Widgets -->
+        <div class="stats-grid">
+            <div class="card stat-card">
+                <div class="stat-icon" style="background: #e0f2fe; color: #0284c7;">
+                    <i class="ri-user-add-line"></i>
+                </div>
+                <div class="stat-info">
+                    <h3>Total Patients</h3>
+                    <p class="stat-value" id="stat-total">--</p>
+                    <span class="stat-change positive">Today</span>
+                </div>
+            </div>
+
+            <div class="card stat-card">
+                <div class="stat-icon" style="background: #dcfce7; color: #16a34a;">
+                    <i class="ri-stethoscope-line"></i>
+                </div>
+                <div class="stat-info">
+                    <h3>Active Doctors</h3>
+                    <p class="stat-value" id="stat-doctors">--</p>
+                    <span class="stat-change">Serving Now</span>
+                </div>
+            </div>
+
+            <div class="card stat-card">
+                <div class="stat-icon" style="background: #fee2e2; color: #dc2626;">
+                    <i class="ri-time-line"></i>
+                </div>
+                <div class="stat-info">
+                    <h3>Avg Wait Time</h3>
+                    <p class="stat-value" id="stat-wait">--</p>
+                    <span class="stat-change negative">Minutes</span>
+                </div>
+            </div>
+
+            <div class="card stat-card">
+                <div class="stat-icon" style="background: #fef3c7; color: #d97706;">
+                    <i class="ri-hospital-line"></i>
+                </div>
+                <div class="stat-info">
+                    <h3>Departments</h3>
+                    <p class="stat-value" id="stat-depts">--</p>
+                    <span class="stat-change">Active Queues</span>
+                </div>
+            </div>
+        </div>
+
+
+    </div>
+    <script src="assets/js/navbar.js"></script>
+    <script>
+        async function fetchStats() {
+            try {
+                const res = await fetch('http://localhost:5000/api/queue/stats');
+                if (!res.ok) return;
+                const data = await res.json();
+
+                document.getElementById('stat-total').innerText = data.totalPatients ?? 0;
+                document.getElementById('stat-doctors').innerText = data.activeDoctors ?? 0;
+                document.getElementById('stat-wait').innerText = (data.avgWait ?? 0) + 'm';
+                document.getElementById('stat-depts').innerText = data.activeDepts ?? 0;
+            } catch (err) {
+                console.error("Failed to fetch stats", err);
+            }
+        }
+
+        // Fetch on load and poll
+        fetchStats();
+        setInterval(fetchStats, 10000);
+    </script>
+</body>
+
+</html>
