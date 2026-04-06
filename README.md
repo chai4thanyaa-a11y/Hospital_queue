@@ -54,3 +54,29 @@ A full-stack implementation of the Hospital Queue Management System using Node.j
 
 ## ⚠️ Admin Reset
 Use the red **Reset Queue** button in the Admin Dashboard to wipe all data and reset token counters to 1.
+# Hospital Queue Management System
+
+A web-based system designed to manage patient queues efficiently in hospitals. It helps reduce waiting time and improves workflow using separate interfaces for admin and doctors.
+
+## 🔧 Features
+- Patient queue management
+- Admin dashboard
+- Doctor interface
+- Simple and user-friendly design
+
+## 💻 Technologies Used
+- HTML
+- CSS
+- JavaScript
+
+## 📁 Project Structure
+- index.html – Home page
+- login.html – Login page
+- admin.html – Admin panel
+- doctor.html – Doctor panel
+
+## 🎯 Objective
+To improve hospital efficiency by digitizing the patient queue system.
+
+## 👩‍💻 Author
+Hima Mariyam
